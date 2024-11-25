@@ -8,7 +8,6 @@ use wg_2024::controller::Command;
 use wg_2024::drone::Drone;
 use wg_2024::network::NodeId;
 use wg_2024::packet::{Packet, PacketType};
-use wg_internal::drone::DroneOptions;
 
 /// Example of drone implementation
 struct MyDrone {
@@ -16,19 +15,26 @@ struct MyDrone {
     sim_contr_send: Sender<Command>,
     sim_contr_recv: Receiver<Command>,
     packet_recv: Receiver<Packet>,
-    pdr: u8,
+    pdr: f32,
     packet_send: HashMap<NodeId, Sender<Packet>>,
 }
 
 impl Drone for MyDrone {
-    fn new(options: DroneOptions) -> Self {
+    fn new(
+        id: NodeId,
+        sim_contr_send: Sender<Command>,
+        sim_contr_recv: Receiver<Command>,
+        packet_recv: Receiver<Packet>,
+        packet_send: HashMap<NodeId, Sender<Packet>>,
+        pdr: f32,
+    ) -> Self {
         Self {
-            id: options.id,
-            sim_contr_send: options.sim_contr_send,
-            sim_contr_recv: options.sim_contr_recv,
-            packet_recv: options.packet_recv,
-            pdr: (options.pdr * 100.0) as u8,
-            packet_send: options.packet_send,
+            id,
+            sim_contr_send,
+            sim_contr_recv,
+            packet_recv,
+            packet_send,
+            pdr,
         }
     }
 
@@ -97,7 +103,7 @@ fn main() {
         //clones all the sender channels for the connected drones
         let mut packet_send: HashMap<NodeId, Sender<Packet>> = HashMap::new();
 
-        for connected_drone in drone.connected_drone_ids.iter() {
+        for connected_drone in drone.connected_node_ids.iter() {
             packet_send.insert(
                 *connected_drone as NodeId,
                 packet_channels
@@ -118,14 +124,14 @@ fn main() {
         let pdr = drone.pdr as f32;
 
         join_handles.push(thread::spawn(move || {
-            let mut drone = MyDrone::new(DroneOptions {
+            let mut drone = MyDrone::new(
                 id,
-                sim_contr_recv,
                 sim_contr_send,
+                sim_contr_recv,
                 packet_recv,
-                pdr,
                 packet_send,
-            });
+                pdr,
+            );
 
             drone.run();
         }));
