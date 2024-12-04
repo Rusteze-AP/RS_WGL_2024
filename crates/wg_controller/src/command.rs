@@ -11,10 +11,13 @@ pub enum DroneCommand {
     Crash,
 }
 
-#[cfg(feature = "partial_eq")]
+#[cfg(feature = "debug")]
 impl PartialEq for DroneCommand {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
+            (DroneCommand::RemoveSender(node1), DroneCommand::RemoveSender(node2)) => {
+                node1 == node2
+            }
             (DroneCommand::AddSender(node1, sender1), DroneCommand::AddSender(node2, sender2)) => {
                 node1 == node2 && sender1.same_channel(sender2)
             }
@@ -29,8 +32,8 @@ impl PartialEq for DroneCommand {
 
 /// From drone to controller
 #[derive(Debug, Clone)]
-#[cfg_attr(feature = "partial_eq", derive(PartialEq))]
-pub enum NodeEvent {
+#[cfg_attr(feature = "debug", derive(PartialEq))]
+pub enum DroneEvent {
     PacketSent(Packet),
     PacketDropped(Packet),
     ControllerShortcut(Packet), //Used for direct routing of Ack, Nack and FloodResponse
